@@ -1,10 +1,10 @@
 # NMRduino GUI
 
-Desktop control and acquisition software for the [NMRduino](https://github.com/NNMRduino/NMRduino) hardware.
+Desktop control and acquisition software for the [NMRduino](https://github.com/NMRduino/NMRduino) hardware.
 
 **Compatibility:** requires NMRduino firmware v1.2.0+.
 
-A pre-built Windows release is available on the [latest release](https://github.com/NNMRduino/NMRduino-GUI/releases/latest) page.
+A pre-built Windows release is available on the [latest release](https://github.com/NMRduino/NMRduino-GUI/releases/latest) page.
 
 ## Included tasks
 
