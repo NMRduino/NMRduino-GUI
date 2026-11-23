@@ -1,52 +1,85 @@
 # NMRduino GUI
 
-Desktop control and acquisition software for the [NMRduino](https://github.com/NMRduino/NMRduino) hardware.
+NMRduino GUI is the desktop software for the [NMRduino spectrometer](https://github.com/NMRduino/NMRduino). It includes three tools for running experiments: Spectrum Analyzer, Pulse and Acquire, and Task Scheduler.
 
-**Compatibility:** requires NMRduino firmware v1.2.0+.
+## Downloads
 
-A pre-built Windows release is available on the [latest release](https://github.com/NMRduino/NMRduino-GUI/releases/latest) page.
+You can download NMRduino GUI **3.37.4** using either of the links below. The Windows package is ready to run. On a Raspberry Pi, you can build the GUI from source using the commands on this page.
 
-## Included tasks
+| Platform | Download | Getting started |
+| --- | --- | --- |
+| Windows (64-bit) | [Download the compiled Windows ZIP](https://github.com/NMRduino/NMRduino-GUI/releases/download/3.37.4/nmrduino-3.37.4-win64.zip) | [How to run it on Windows](#run-on-windows) |
+| Raspberry Pi, including Pi 400 | [Download the source code (.tar.gz)](https://codeload.github.com/NMRduino/NMRduino-GUI/tar.gz/refs/tags/3.37.4) | [How to build and run it on a Raspberry Pi](#build-on-raspberry-pi) |
 
-- Spectrum Analyzer
-- Pulse and Acquire
-- Task Scheduler
+For other versions, see [all GUI releases](https://github.com/NMRduino/NMRduino-GUI/releases). If you also need firmware for the Teensy, see [Connect the spectrometer](#connect-the-spectrometer).
 
-## Build
+## Run on Windows
 
-Requirements: Qt 5.15.2, a C++14-capable compiler.
+1. Download the **compiled Windows ZIP** from the table above.
+2. Right-click the downloaded file, choose **Extract All**, and open the extracted folder.
+3. Double-click `nmrduino.exe` to start the GUI.
 
-1. Open `src/NMRduino.pro` in Qt Creator.
-2. Select a MinGW 64-bit kit (the project statically links the MinGW runtime on
-   Windows; an MSVC kit will also build, just without that optimization).
-3. Build in Release mode.
+The ZIP includes Qt and the other files the GUI needs. If you move the program, move the whole extracted folder so these files stay together.
 
-## Run
+## Build on Raspberry Pi
 
-- **Portable mode**: place a `_config.ini` file next to `nmrduino.exe` and all
-  settings/logs are kept alongside the executable.
-- **Default mode**: if no `_config.ini` is found next to the executable, settings and
-  logs are stored in `%USERPROFILE%\.NMRduino\` (Windows) / `~/.NMRduino/` (Linux).
+These instructions are for Raspberry Pi OS with desktop, including on the Raspberry Pi 400. If you are preparing a new SD card, use [Raspberry Pi Imager](https://www.raspberrypi.com/software/) and choose a username and password under **Customisation → User**. You will use that password when `sudo` prompts for it.
 
-## Windows release
+**1. Install the build tools.** Open a terminal on the Pi and run the following commands. This installs the compiler, Qt 5, and the serial-port library used to communicate with the spectrometer.
 
-Windows builds are distributed as a self-contained zip (no installer). Build and
-package it in one step with:
-
-```powershell
-tools\windows_deploy.ps1 -QtDir <path to Qt kit, e.g. E:\Qt\5.15.2\mingw81_64> -MingwDir <path to matching MinGW toolchain, e.g. E:\Qt\Tools\mingw810_64>
+```bash
+sudo apt update
+sudo apt install build-essential curl qt5-qmake qtbase5-dev libqt5serialport5-dev libqt5svg5
 ```
 
-This runs `qmake`/`mingw32-make` for a Release build, then packages `nmrduino.exe`
-with its runtime dependencies into `dist\nmrduino-<version>-win64\` and a matching
-zip. It does **not** use `windeployqt` — that tool has a known bad debug/release
-detection heuristic on the Qt 5.15.2 MinGW open-source package that makes it fail
-with "Unable to find the platform plugin" and deploy nothing. Instead the script
-walks the real PE import table (via `objdump`) of the built exe and its Qt/MinGW
-DLLs, recursively, and adds the platform/imageformat/style plugins the app actually
-needs. It finishes with a smoke test that launches the packaged exe standalone and
-confirms it stays running.
+**2. Download the source code.** You can do this from the same terminal. The commands below download the source archive linked above and extract it into your home directory.
+
+```bash
+cd ~
+curl -fL https://codeload.github.com/NMRduino/NMRduino-GUI/tar.gz/refs/tags/3.37.4 -o nmrduino-3.37.4.tar.gz
+tar -xzf nmrduino-3.37.4.tar.gz
+```
+
+**3. Compile the GUI.** Run the following commands and wait for the build to finish. This step can take several minutes on a Pi.
+
+```bash
+mkdir -p ~/NMRduino-GUI-3.37.4/build
+cd ~/NMRduino-GUI-3.37.4/build
+/usr/lib/qt5/bin/qmake ../src/NMRduino.pro CONFIG+=release && make
+```
+
+**4. Start the GUI.** Once the terminal prompt returns after a successful build, run:
+
+```bash
+~/NMRduino-GUI-3.37.4/build/nmrduino
+```
+
+You only need to compile the GUI once. The next time you want to use it, open a terminal and run that last command.
+
+## Connect the spectrometer
+
+The Teensy requires NMRduino firmware **1.2.0 or later**. If you need to install or update the firmware, open the [latest NMRduino firmware release](https://github.com/NMRduino/NMRduino/releases/latest) and download the `.hex` file listed under **Assets**. Use [Teensy Loader](https://www.pjrc.com/teensy/loader.html) to flash it to the board.
+
+Once the firmware is in place, connect the NMRduino to your computer by USB and select **NMRduino** as the acquisition device in the GUI.
+
+You can also try the software before connecting a spectrometer. Open **Spectrum Analyzer** and select **Test DAQ** to use the simulated device.
+
+## Settings and logs
+
+The GUI stores settings and logs in `%USERPROFILE%\.NMRduino\` on Windows and `~/.NMRduino/` on Raspberry Pi. If you prefer to keep them with the program, place a `_config.ini` file alongside the executable to enable portable mode.
+
+## Build and package a Windows release
+
+If you want to build the Windows version yourself, open `src/NMRduino.pro` in Qt Creator, select a Qt 5.15.2 kit with a C++14 compiler, and build in **Release** mode. The MinGW 64-bit kit statically links the MinGW runtime. MSVC is also supported.
+
+To create a distributable ZIP with MinGW, run the following command from the repository root in PowerShell. Adjust the two paths to match your Qt and MinGW installations.
+
+```powershell
+.\tools\windows_deploy.ps1 -QtDir "E:\Qt\5.15.2\mingw81_64" -MingwDir "E:\Qt\Tools\mingw810_64"
+```
+
+The script builds the GUI, collects its runtime dependencies and Qt plugins, and writes the package to `dist\`. It then launches the packaged executable to check that it starts.
 
 ## License
 
-Licensed under GPL-3.0 — see [`LICENCE`](LICENCE).
+The NMRduino GUI is licensed under [GPL-3.0](LICENCE).
