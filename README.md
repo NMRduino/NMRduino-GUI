@@ -40,8 +40,7 @@ You can do this from the same terminal. The commands below download the source a
 
 ```bash
 cd ~
-curl -fL https://codeload.github.com/NMRduino/NMRduino-GUI/tar.gz/refs/tags/3.38 -o nmrduino-3.38.tar.gz
-tar -xzf nmrduino-3.38.tar.gz
+cd ~ && curl -fL --retry 2 -o nmrduino-3.38.tar.gz https://codeload.github.com/NMRduino/NMRduino-GUI/tar.gz/refs/tags/3.38 && tar -xzf nmrduino-3.38.tar.gz
 ```
 
 ### C3. Compile the GUI
