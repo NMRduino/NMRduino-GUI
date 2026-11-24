@@ -90,7 +90,7 @@
        </layout>
       </item>
       <item row="2" column="1">
-       <widget class="QLineEdit" name="lineEdit_serialNumber"/>
+       <widget class="QComboBox" name="comboBox_serialNumber"><property name="editable"><bool>true</bool></property></widget>
       </item>
       <item row="2" column="0">
        <widget class="QLabel" name="label_3">
@@ -108,6 +108,18 @@
       <string>Settings</string>
      </property>
      <layout class="QGridLayout" name="gridLayout_3">
+      <item row="4" column="0">
+       <widget class="QLabel" name="taskStateLabel">
+        <property name="text"><string>State</string></property>
+       </widget>
+      </item>
+      <item row="4" column="1">
+       <widget class="QLineEdit" name="taskState">
+        <property name="readOnly"><bool>true</bool></property>
+        <property name="text"><string>Ready</string></property>
+        <property name="toolTip"><string>Pulse and Acquire task state</string></property>
+       </widget>
+      </item>
       <item row="0" column="1">
        <widget class="QDoubleSpinBox" name="doubleSpinBox_sampleRate">
         <property name="sizePolicy">
@@ -208,7 +220,7 @@
   <tabstop>doubleSpinBox_acqTime</tabstop>
   <tabstop>spinBox_vendorId</tabstop>
   <tabstop>spinBox_productId</tabstop>
-  <tabstop>lineEdit_serialNumber</tabstop>
+  <tabstop>comboBox_serialNumber</tabstop>
   <tabstop>pushButton_reconnect</tabstop>
   <tabstop>pushButton_disconnect</tabstop>
   <tabstop>plainTextEdit</tabstop>

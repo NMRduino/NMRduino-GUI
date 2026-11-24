@@ -116,6 +116,7 @@ public:
 
     //virtual double getAcquisitionTime() const;
 
+    virtual void setAcquisitionState(const QString &) {}
     virtual void abortAcquisition() {}
 
     virtual QVector<quint16> get16BitBuffer(int=-1) {return QVector<quint16>();}

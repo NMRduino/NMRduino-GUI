@@ -29,7 +29,10 @@ MainApplication::MainApplication(QObject *parent) :
         QSettings(settingsFilePath).remove("ColorsNoUser");
     }
 
-    LoadOptions loadOptions = LoadOption::ReconnectDevices |
+    if (!QDir().mkpath(pulseSequenceDirectory()))
+        qWarning() << "Could not create pulse sequence directory" << pulseSequenceDirectory();
+
+    LoadOptions loadOptions = LoadOption::DiscoverAtStartup | LoadOption::ReconnectDevices |
                               LoadOption::LoadActiveIndices |
                               LoadOption::ReopenTasks |
                               LoadOption::LoadPlotSettings |
@@ -134,6 +137,11 @@ void MainApplication::changeStyleSheetParameter(QString name, QString value, boo
     if (load){
         loadStyleSheet();
     }
+}
+
+QString MainApplication::pulseSequenceDirectory()
+{
+    return QDir::home().filePath("PulseSequences");
 }
 
 const QString MainApplication::getTempPath() const

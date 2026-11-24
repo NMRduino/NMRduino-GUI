@@ -4,12 +4,12 @@ NMRduino GUI is the desktop software for the [NMRduino spectrometer](https://git
 
 ## A. Downloads
 
-Version **3.38** is available as source. The Windows binary linked below is **3.37.4**. See the [change log](CHANGELOG.md) for the new features. The Windows package is ready to run. On a Raspberry Pi, you can build the GUI from source using the commands in section C.
+Version **3.39** is available as source. The Windows binary linked below is **3.37.4**. See the [change log](CHANGELOG.md) for the new features. The Windows package is ready to run. On a Raspberry Pi, you can build the GUI from source using the commands in section C.
 
 | Platform | Download | Instructions |
 | --- | --- | --- |
 | Windows (64-bit) | [Download the compiled Windows ZIP (3.37.4)](https://github.com/NMRduino/NMRduino-GUI/releases/download/3.37.4/nmrduino-3.37.4-win64.zip) | [B. Run on Windows](#b-run-on-windows) |
-| Raspberry Pi, including Pi 400 | [Download the source code (.tar.gz)](https://codeload.github.com/NMRduino/NMRduino-GUI/tar.gz/refs/tags/3.38) | [C. Build on Raspberry Pi](#c-build-on-raspberry-pi) |
+| Raspberry Pi, including Pi 400 | [Download the source code (.tar.gz)](https://codeload.github.com/NMRduino/NMRduino-GUI/tar.gz/refs/tags/3.39) | [C. Build on Raspberry Pi](#c-build-on-raspberry-pi) |
 
 For other versions, see [all GUI releases](https://github.com/NMRduino/NMRduino-GUI/releases). If you also need firmware for the Teensy, see [D. Connect the spectrometer](#d-connect-the-spectrometer).
 
@@ -40,7 +40,7 @@ You can do this from the same terminal. The commands below download the source a
 
 ```bash
 cd ~
-cd ~ && curl -fL --retry 2 -o nmrduino-3.38.tar.gz https://codeload.github.com/NMRduino/NMRduino-GUI/tar.gz/refs/tags/3.38 && tar -xzf nmrduino-3.38.tar.gz
+cd ~ && curl -fL --retry 2 -o nmrduino-3.39.tar.gz https://codeload.github.com/NMRduino/NMRduino-GUI/tar.gz/refs/tags/3.39 && tar -xzf nmrduino-3.39.tar.gz
 ```
 
 ### C3. Compile the GUI
@@ -48,8 +48,8 @@ cd ~ && curl -fL --retry 2 -o nmrduino-3.38.tar.gz https://codeload.github.com/N
 Run the following commands and wait for the build to finish. This step can take several minutes on a Pi.
 
 ```bash
-mkdir -p ~/NMRduino-GUI-3.38/build
-cd ~/NMRduino-GUI-3.38/build
+mkdir -p ~/NMRduino-GUI-3.39/build
+cd ~/NMRduino-GUI-3.39/build
 /usr/lib/qt5/bin/qmake ../src/NMRduino.pro CONFIG+=release && make
 ```
 
@@ -58,7 +58,7 @@ cd ~/NMRduino-GUI-3.38/build
 Once the terminal prompt returns after a successful build, run:
 
 ```bash
-~/NMRduino-GUI-3.38/build/nmrduino
+~/NMRduino-GUI-3.39/build/nmrduino
 ```
 
 You only need to compile the GUI once. The next time you want to use it, open a terminal and run that last command.
@@ -67,13 +67,15 @@ You only need to compile the GUI once. The next time you want to use it, open a 
 
 The Teensy requires NMRduino firmware **1.2.0 or later**. If you need to install or update the firmware, open the [latest NMRduino firmware release](https://github.com/NMRduino/NMRduino/releases/latest) and download the `.hex` file listed under **Assets**. Use [Teensy Loader](https://www.pjrc.com/teensy/loader.html) to flash it to the board.
 
-Once the firmware is in place, connect the NMRduino to your computer by USB and select **NMRduino** as the acquisition device in the GUI.
+Connect the NMRduino by USB before starting the GUI. If one device matches the configured vendor and product IDs (defaults 5824 and 1155), the GUI connects and displays its serial number. If several devices match, choose the serial number in the **NMRduino** side panel and click **Reconnect**. Select **NMRduino** as the acquisition device for your experiment.
 
 You can also try the software before connecting a spectrometer. Open **Spectrum Analyzer** and select **Test DAQ** to use the simulated device.
 
 ## E. Settings and logs
 
 The GUI stores settings and logs in `%USERPROFILE%\.NMRduino\` on Windows and `~/.NMRduino/` on Raspberry Pi. If you prefer to keep them with the program, place a `_config.ini` file alongside the executable to enable portable mode.
+
+On Raspberry Pi, the default working directory is the current user’s configured Desktop folder under `data/yyMMdd`. Pulse and Acquire opens its file chooser in `~/PulseSequences`, which the GUI creates at startup. The default Pulse and Acquire timeout is 60 seconds.
 
 ## F. Build and package a Windows release
 
@@ -90,3 +92,7 @@ The script builds the GUI, collects its runtime dependencies and Qt plugins, and
 ## G. License
 
 NMRduino GUI is licensed under [GPL-3.0](LICENCE).
+
+To build the GUI, use the open-source Qt 5.15 development packages. The Qt modules used by NMRduino GUI are available under open-source terms compatible with GPLv3. On Raspberry Pi OS, the packages listed in section C1 are sufficient. An educational or commercial Qt licence is optional.
+
+The bundled QCustomPlot 2.0.1 is licensed under GPLv3 or later. When redistributing binaries that include Qt libraries or plugins, include the applicable licence texts and notices and provide access to the corresponding source for the versions shipped. See [Qt’s open-source licensing guidance](https://www.qt.io/development/open-source-lgpl-obligations) and the [QCustomPlot licence notice](src/plots/qcustomplot.h).

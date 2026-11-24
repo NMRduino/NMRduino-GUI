@@ -63,6 +63,7 @@ public:
     void setSampleRate(double sampleRate) override;
     double getSampleRate() const override;
 
+    void setAcquisitionState(const QString &state) override;
     void abortAcquisition() override;
 
     QVector<quint16> get16BitBuffer(int length) override;
@@ -73,7 +74,7 @@ public:
     virtual ChannelType getChannelType(const QPair<const QString, const QString> channel) const override;
     virtual ChannelType getChannelType(const QString channel) const override;
 
-    void reconnectDevice(bool skipWarnings=false);
+    void reconnectDevice(bool skipWarnings=false, bool discover=false);
     void disconnectDevice();
 
 private:    

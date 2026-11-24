@@ -102,6 +102,11 @@ QMap<int, QPair<QVector<double>, QVector<double> > > TestDAQ::getPlotData(int le
     }
 }
 
+void TestDAQ::setAcquisitionState(const QString &state)
+{
+    ui->taskState->setText(state);
+}
+
 void TestDAQ::abortAcquisition(){
     timer->stop();
 }

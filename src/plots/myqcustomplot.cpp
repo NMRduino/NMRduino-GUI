@@ -25,15 +25,31 @@ MyQCustomPlot::~MyQCustomPlot()
 void MyQCustomPlot::configureCursor(QCheckBox *toggle, QLabel *readout,
                                     const QString &xUnit, const QString &yUnit)
 {
+    cursorToggle = toggle;
     cursorReadout = readout;
+    toggle->setCursor(Qt::ArrowCursor);
+    toggle->setAttribute(Qt::WA_NoMousePropagation);
+    toggle->installEventFilter(this);
+    readout->setAttribute(Qt::WA_TransparentForMouseEvents);
+    readout->setAlignment(Qt::AlignLeft | Qt::AlignTop);
+    readout->hide();
+
+    auto placeControls = [this, toggle, readout]() {
+        const QRect area = axisRect()->rect().adjusted(4, 3, -4, -3);
+        toggle->setGeometry(QRect(area.topLeft(), toggle->sizeHint()));
+        const int left = toggle->geometry().right() + 6;
+        readout->setGeometry(left, area.top(), qMax(0, area.right() - left + 1),
+                             2 * readout->fontMetrics().lineSpacing() + 4);
+    };
+    placeControls();
+    connect(this, &QCustomPlot::afterReplot, this, placeControls);
     cursorFormat = "x = %1 " + xUnit + "     y = %2 " + yUnit;
     deltaFormat = "Δx = %1 " + xUnit + "     Δy = %2 " + yUnit;
     toggle->setToolTip(tr("Left-click to set the reference. Right-click to clear it. Drag to pan."));
     connect(toggle, &QCheckBox::toggled, this, [this](bool enabled) {
         cursorEnabled = enabled;
         referenceLocked = false;
-        // Reserve both rows so setting a reference doesn't move the axes.
-        cursorReadout->setMinimumHeight(enabled ? 2 * cursorReadout->fontMetrics().lineSpacing() + 2 : 0);
+
         updateCursorReadout(mapFromGlobal(QCursor::pos()));
     });
     connect(this, &QCustomPlot::mouseMove, this, [this](QMouseEvent *event) {
@@ -66,7 +82,9 @@ void MyQCustomPlot::configureCursor(QCheckBox *toggle, QLabel *readout,
 void MyQCustomPlot::updateCursorReadout(const QPoint &position)
 {
     livePixel = position;
-    liveVisible = cursorEnabled && axisRect()->rect().contains(position);
+    liveVisible = cursorEnabled && axisRect()->rect().contains(position)
+                  && !cursorToggle->geometry().contains(position);
+    cursorReadout->setVisible(liveVisible);
     if (liveVisible) {
         setCursor(Qt::BlankCursor); // The overlay supplies the pointer in the theme color.
         const double x = xAxis->pixelToCoord(position.x());
@@ -114,6 +132,13 @@ void MyQCustomPlot::paintEvent(QPaintEvent *event)
                               yAxis->coordToPixel(referenceCoords.y())), true);
     if (liveVisible)
         drawCrosshair(livePixel, false);
+}
+
+bool MyQCustomPlot::eventFilter(QObject *object, QEvent *event)
+{
+    if (object == cursorToggle && event->type() == QEvent::Enter && cursorEnabled)
+        updateCursorReadout(QPoint(-1, -1));
+    return QCustomPlot::eventFilter(object, event);
 }
 
 void MyQCustomPlot::leaveEvent(QEvent *event)

@@ -10,6 +10,23 @@
 
 using namespace Task;
 
+namespace {
+class MicrosecondTicker : public QCPAxisTicker
+{
+    double getTickStep(const QCPRange &range) override
+    {
+        return qMax(1LL, qRound64(1000 * QCPAxisTicker::getTickStep(range))) / 1000.0;
+    }
+
+    int getSubTickCount(double) override { return 0; }
+
+    QString getTickLabel(double ms, const QLocale &locale, QChar, int) override
+    {
+        return locale.toString(qRound64(1000 * ms));
+    }
+};
+}
+
 PulseAcquire::PulseAcquire(QWidget *parent, QString taskName,
                            App::MainApplication* const app, QPointer<Dev::DeviceManager> devMan) :
     ManagedTask(parent, taskName, TaskType::PulseAcquire),
@@ -26,15 +43,20 @@ PulseAcquire::PulseAcquire(QWidget *parent, QString taskName,
     ui->lineEdit_pulse_script_path->setVisible(false);
 
     ui->checkBox_noTestSignal->setVisible(false);
-    ui->groupBox->setVisible(true);
-    ui->gridLayout->addWidget(ui->groupBox_pulseAcquireSettings, 0, 0, 2, 1);
 
-    setTimeout(600000);
+    setTimeout(60000);
 
     runMode = RunMode::DevicesDisabled | RunMode::MenuDisabled;
 
     connect(this, &PulseAcquire::stateChanged,
-            this, [=] () {ui->lineEdit->setText(QVariant::fromValue(getTaskState()).toString());});
+            this, [this]() {
+        const QString deviceName = ui->comboBox_daq->currentText();
+        if (!deviceName.isEmpty()) {
+            auto device = deviceManager->getDevice<Dev::DAQ>(deviceName);
+            if (device)
+                device->setAcquisitionState(getTaskState());
+        }
+    });
 
     connect(ui->spinBox, &QSpinBox::editingFinished, this, [=] () {setTimeout(ui->spinBox->value()*1000);});
     connect(ui->pushButton_loadPulseSequence, &QPushButton::clicked, this, &PulseAcquire::loadPulseSequence);
@@ -72,7 +94,7 @@ PulseAcquire::PulseAcquire(QWidget *parent, QString taskName,
     splitter->addWidget(topWidget);
     splitter->addWidget(bottomWidget);
 
-    ui->gridLayout->addWidget(splitter);
+    ui->gridLayout->addWidget(splitter, 0, 0);
     for (auto i=0; i< ui->gridLayout->rowCount(); i ++){
         ui->gridLayout->setRowStretch(i, 0);
     }
@@ -420,12 +442,10 @@ void PulseAcquire::updatePulseSequenceCursor()
 
 void PulseAcquire::on_pushButton_openSequence_clicked()
 {
-    auto currentParent = QDir(ui->lineEdit_pulseProgPath->text());
-    currentParent.cdUp();
     auto fileName = QFileDialog::getOpenFileName(
         this,
         "Open Pulse Sequence File",
-        currentParent.absolutePath(),
+        App::MainApplication::pulseSequenceDirectory(),
         "");
 
     if (not QFile::exists(fileName)){
@@ -522,7 +542,20 @@ void PulseAcquire::setupPlots(){
     timeoutCursor->setPen(QPen(penColor, 1.0));
 #endif
 
-    ui->plotPulseSequence->xAxis->setLabel("Time (ms)");
+    auto axis = ui->plotPulseSequence->xAxis;
+    const auto millisecondTicker = axis->ticker();
+    const auto microsecondTicker = QSharedPointer<MicrosecondTicker>::create();
+    axis->setLabel("Time (ms)");
+    connect(axis, QOverload<const QCPRange &>::of(&QCPAxis::rangeChanged), this,
+            [axis, millisecondTicker, microsecondTicker](const QCPRange &range) {
+        if (range.size() < 0.00499999) {
+            axis->setRange(range.center(), 0.005, Qt::AlignCenter);
+            return;
+        }
+        const bool useMicroseconds = range.size() <= 6.0;
+        axis->setTicker(useMicroseconds ? microsecondTicker : millisecondTicker);
+        axis->setLabel(useMicroseconds ? QStringLiteral("Time (µs)") : QStringLiteral("Time (ms)"));
+    });
     ui->plotPulseSequence->yAxis->setLabel("Output ()");
     ui->plotPulseSequence->xAxis->setRange(0, 1000000);
     ui->plotPulseSequence->yAxis->setRange(-0.1, 5*1.5 + 1.1);
@@ -638,11 +671,9 @@ void PulseAcquire::setTimeout(int msecs){
 }
 
 void PulseAcquire::enableGuiElements(){
-    ui->groupBox->setEnabled(true);
     ui->groupBox_pulseAcquireSettings->setEnabled(true);
 }
 
 void PulseAcquire::disableGuiElements(RunModes){
-    ui->groupBox->setEnabled(false);
     ui->groupBox_pulseAcquireSettings->setEnabled(false);
 }

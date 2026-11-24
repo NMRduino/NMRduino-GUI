@@ -40,6 +40,7 @@ public:
     QVector<quint16> get16BitBuffer(int length) override;
     QMap<int, QPair<QVector<double>, QVector<double>>> getPlotData(int length, bool reversed) override;
 
+    void setAcquisitionState(const QString &state) override;
     void abortAcquisition() override;
 
     void setDefaultSettings() override;

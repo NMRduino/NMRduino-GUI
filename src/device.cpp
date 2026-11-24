@@ -117,7 +117,12 @@ void DeviceManager::loadSettings(QSettings &settings, App::LoadOptions loadOptio
             removeDevice(device);
         }
 
-        for(auto &deviceName: settings.value("DeviceManager/DeviceNames").toStringList()) {
+        auto names = settings.value("DeviceManager/DeviceNames").toStringList();
+        const int testIndex = names.indexOf("Test DAQ");
+        const int hardwareIndex = names.indexOf("NMRduino");
+        if (testIndex >= 0 && hardwareIndex > testIndex)
+            names.move(hardwareIndex, testIndex);
+        for (const auto &deviceName : names) {
             settings.beginGroup(deviceName);
             auto deviceType = GeneralDevice::devTypesMap.key(settings.value("DeviceType").toString());
             settings.endGroup();
@@ -132,7 +137,13 @@ void DeviceManager::loadSettings(QSettings &settings, App::LoadOptions loadOptio
     }
 
     if(loadOptions & App::LoadOption::LoadActiveIndices){
-        ui->toolBox_devices->setCurrentIndex(settings.value("DeviceManager/ActiveDeviceIndex").toInt());
+        const auto names = settings.value("DeviceManager/DeviceNames").toStringList();
+        const int index = settings.value("DeviceManager/ActiveDeviceIndex", -1).toInt();
+        if (index >= 0 && index < names.size()) {
+            for (int i = 0; i < ui->toolBox_devices->count(); ++i)
+                if (ui->toolBox_devices->itemText(i) == names.at(index))
+                    ui->toolBox_devices->setCurrentIndex(i);
+        }
     }
 }
 

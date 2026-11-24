@@ -106,6 +106,18 @@
       <string>Settings</string>
      </property>
      <layout class="QGridLayout" name="gridLayout_3">
+      <item row="5" column="0">
+       <widget class="QLabel" name="taskStateLabel">
+        <property name="text"><string>State</string></property>
+       </widget>
+      </item>
+      <item row="5" column="1">
+       <widget class="QLineEdit" name="taskState">
+        <property name="readOnly"><bool>true</bool></property>
+        <property name="text"><string>Ready</string></property>
+        <property name="toolTip"><string>Pulse and Acquire task state</string></property>
+       </widget>
+      </item>
       <item row="3" column="1">
        <widget class="QDoubleSpinBox" name="doubleSpinBox_acqTime">
         <property name="enabled">

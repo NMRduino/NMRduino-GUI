@@ -60,10 +60,12 @@ public:
 
 protected:
     void paintEvent(QPaintEvent *event) override;
+    bool eventFilter(QObject *object, QEvent *event) override;
     void leaveEvent(QEvent *event) override;
 
 private:
     void updateCursorReadout(const QPoint &position);
+    QCheckBox *cursorToggle = nullptr;
     QLabel *cursorReadout = nullptr;
     QString cursorFormat;
     QString deltaFormat;

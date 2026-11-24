@@ -1,4 +1,15 @@
-# NMRduino GUI 3.38
+# NMRduino GUI changelog
+
+## 3.39
+
+- NMRduino appears first in the device panel. At startup, one matching USB device connects automatically and the GUI displays its serial number. With multiple matches, choose a serial number in the panel and click **Reconnect**.
+- Moved Timeout into the Pulse and Acquire settings and changed its default to 60 seconds. Acquisition State now appears in the selected device’s settings.
+- Moved the cursor controls and coordinate readouts inside the time-domain and spectrum plots to give the plots more space.
+- The pulse-sequence time axis switches to microseconds at spans of 6 ms or less. At maximum zoom the divisions are 1 µs apart.
+- The GUI creates `~/PulseSequences` and uses it as the starting folder for **Open** in Pulse and Acquire.
+- On Raspberry Pi, dated acquisition folders use the current user’s configured Desktop location, including localized folder names. This fixes directory creation on systems with a username other than `pi`.
+
+## 3.38
 
 Changes since 3.37.4.
 

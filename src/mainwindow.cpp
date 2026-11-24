@@ -8,6 +8,7 @@
 #include <QMessageBox>
 #include <QSettings>
 #include <QDir>
+#include <QStandardPaths>
 #include <QDate>
 #include <QDesktopWidget>
 #include <QGridLayout>
@@ -32,14 +33,11 @@ MainWindow::MainWindow(App::MainApplication* const app):
 {
     ui->setupUi(this);
 
-    #ifdef Q_OS_WIN
-    ui->lineEdit_cwd->setText(QDir::cleanPath(QDir::homePath()                        + QDir::separator() +
-    #else
-    ui->lineEdit_cwd->setText(QDir::cleanPath(QString("/home/pi")                     + QDir::separator() +
-    #endif
-                                              "Desktop"                               + QDir::separator() +
-                                              "data"                                  + QDir::separator() +
-                                              QDate::currentDate().toString("yyMMdd") + QDir::separator()));
+    QString desktop = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation);
+    if (desktop.isEmpty())
+        desktop = QDir::homePath();
+    const QString dateFolder = QDate::currentDate().toString("yyMMdd");
+    ui->lineEdit_cwd->setText(QDir(desktop).filePath("data/" + dateFolder));
 
     ui->menuBar->setVisible(true);
 

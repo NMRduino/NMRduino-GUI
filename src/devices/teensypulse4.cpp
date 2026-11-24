@@ -54,7 +54,7 @@ TeensyPulse4::TeensyPulse4(QWidget *parent, QString devName, GeneralDevice::DevT
             this, [=] () {setNumberOfSamples(ui->comboBox_dataSize->currentData().toInt());});
 
     connect(qSerialPort.data(),        &QSerialPort::readyRead, this, &TeensyPulse4::readData);
-    connect(ui->pushButton_reconnect,  &QPushButton::clicked,   this, &TeensyPulse4::reconnectDevice);
+    connect(ui->pushButton_reconnect,  &QPushButton::clicked,   this, [this] { reconnectDevice(); });
     connect(ui->pushButton_disconnect, &QPushButton::clicked,   this, &TeensyPulse4::disconnectDevice);
 
     connect(&receiveTimeoutTimer, &QTimer::timeout, this, &TeensyPulse4::receiveTimeout);
@@ -73,7 +73,7 @@ void TeensyPulse4::saveSettings(QSettings &settings) const{
 
     settings.setValue("ProductId", ui->spinBox_productId->value());
     settings.setValue("VendorId", ui->spinBox_vendorId->value());
-    settings.setValue("SerialNumber", ui->lineEdit_serialNumber->text());
+    settings.setValue("SerialNumber", ui->comboBox_serialNumber->currentText());
 
     //settings.setValue("PulseMode", pulseModes.value(pulseMode));
 }
@@ -87,10 +87,10 @@ void TeensyPulse4::loadSettings(const QSettings &settings, App::LoadOptions load
 
     ui->spinBox_productId->setValue(settings.value("ProductId", 1155).toInt());
     ui->spinBox_vendorId->setValue(settings.value("VendorId", 5824).toInt());
-    ui->lineEdit_serialNumber->setText(settings.value("SerialNumber", 0).toString());
+    ui->comboBox_serialNumber->setEditText(settings.value("SerialNumber").toString());
 
     if (loadOptions & App::LoadOption::ReconnectDevices){
-        reconnectDevice(loadOptions & App::LoadOption::SkipWarnings);
+        reconnectDevice(loadOptions & App::LoadOption::SkipWarnings, loadOptions & App::LoadOption::DiscoverAtStartup);
     }
 
     setSampleRate(settings.value("SampleRate", 2000.0).toDouble());
@@ -266,69 +266,59 @@ void TeensyPulse4::readData(){
     }
 }
 
-void TeensyPulse4::reconnectDevice(bool skipWarnings){
+void TeensyPulse4::reconnectDevice(bool skipWarnings, bool discover){
     disconnectDevice();
-    QString portName;
-    QString serialNumber;
-
-    bool isAvailable = false;
-
-    foreach (const QSerialPortInfo &serialPortInfo, QSerialPortInfo::availablePorts()) {
-       if(!serialPortInfo.hasVendorIdentifier() or !serialPortInfo.hasProductIdentifier()){
-           continue;
-       }
-       if(serialPortInfo.vendorIdentifier() != ui->spinBox_vendorId->value()){
-           continue;
-       }
-
-       if(serialPortInfo.productIdentifier() != ui->spinBox_productId->value()){
-           continue;
-       }
-
-       serialNumber = ui->lineEdit_serialNumber->text();
-       if((serialPortInfo.serialNumber() != serialNumber) && !serialNumber.isEmpty()){
-          continue;
-       }
-
-      portName = serialPortInfo.portName();
-      isAvailable = true;
-
-      printResponse("ArduinoDAQ has been found:");
-      printResponse("Vendor Id:"  +  QString::number(ui->spinBox_vendorId->value()));
-      printResponse("Product Id:" + QString::number(ui->spinBox_productId->value()));
-      printResponse("Serial Number:" +serialNumber);
-
-      break;
+    auto selector = ui->comboBox_serialNumber;
+    const QString requested = selector->currentText().trimmed();
+    const QString selectedPort = selector->currentText() == selector->itemText(selector->currentIndex())
+            ? selector->currentData().toString() : QString();
+    selector->clear();
+    QList<QSerialPortInfo> matches;
+    for (const auto &port : QSerialPortInfo::availablePorts()) {
+        if (!port.hasVendorIdentifier() || !port.hasProductIdentifier()
+                || port.vendorIdentifier() != ui->spinBox_vendorId->value()
+                || port.productIdentifier() != ui->spinBox_productId->value())
+            continue;
+        selector->addItem(port.serialNumber().isEmpty() ? port.portName() : port.serialNumber(),
+                          port.portName());
+        if (discover || (!selectedPort.isEmpty() ? port.portName() == selectedPort
+                        : requested.isEmpty() || requested == port.serialNumber() || requested == port.portName()))
+            matches.append(port);
     }
-
-    if(!isAvailable){
-        if (!skipWarnings){
-            QMessageBox::warning(this, "Port error:", QString("Cannot connect to \"%1\".").arg(deviceName));
-        }
-
-        printResponse(QString("Cannot connect to \"%1\". Available devices:").arg(deviceName));
-        foreach (const QSerialPortInfo &serialPortInfo, QSerialPortInfo::availablePorts()) {
-           if(!serialPortInfo.hasVendorIdentifier() or !serialPortInfo.hasProductIdentifier()){
-               continue;
-           }
-           printResponse("Vendor ID:     " + QString::number(serialPortInfo.vendorIdentifier()));
-           printResponse("Product ID:    " + QString::number(serialPortInfo.productIdentifier()));
-           printResponse("Serial number: " + serialPortInfo.serialNumber());
-           printResponse("");
-        }
+    QString message;
+    if (matches.size() > 1) {
+        selector->setCurrentIndex(-1);
+        message = tr("Multiple devices found. Select a serial number in the NMRduino side menu and click Reconnect.");
+    } else if (matches.isEmpty()) {
+        selector->setCurrentIndex(-1);
+        selector->setEditText(discover ? QString() : requested);
+        message = tr("Cannot connect to %1. No matching serial port found.").arg(deviceName);
+    } else {
+        const auto port = matches.first();
+        selector->setCurrentIndex(selector->findData(port.portName()));
+        qSerialPort->setPort(port);
+        if (!qSerialPort->open(QSerialPort::ReadWrite))
+            message = tr("Cannot open %1: %2").arg(port.portName(), qSerialPort->errorString());
+    }
+    if (!message.isEmpty()) {
+        printResponse(message);
+        if (!skipWarnings)
+            QMessageBox::warning(this, deviceName, message);
         return;
     }
-
-    // open and configure QSerialPort
-    qSerialPort->setPortName(portName);
-    qSerialPort->open(QSerialPort::ReadWrite);
     qSerialPort->setBaudRate(QSerialPort::Baud115200);
     qSerialPort->setDataBits(QSerialPort::Data8);
     qSerialPort->setParity(QSerialPort::NoParity);
     qSerialPort->setStopBits(QSerialPort::OneStop);
     qSerialPort->setFlowControl(QSerialPort::NoFlowControl);
 
-    printResponse("Connected.");
+    const auto port = matches.first();
+    const QString connected = port.serialNumber().isEmpty()
+            ? tr("%1 connected on %2 (no serial number reported).").arg(deviceName, port.portName())
+            : tr("%1 connected to device with serial number %2.").arg(deviceName, port.serialNumber());
+    printResponse(connected);
+    if (discover && !skipWarnings)
+        QMessageBox::information(this, deviceName, connected);
     updateStatus("Connected.");
 }
 
@@ -339,6 +329,11 @@ void TeensyPulse4::disconnectDevice()
     }
     printResponse("Disconnected.");
     updateStatus("Disconnected.");
+}
+
+void TeensyPulse4::setAcquisitionState(const QString &state)
+{
+    ui->taskState->setText(state);
 }
 
 void TeensyPulse4::abortAcquisition(){

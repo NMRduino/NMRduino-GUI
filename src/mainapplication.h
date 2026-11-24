@@ -33,6 +33,7 @@ enum class App::LoadOption {
     ResumeTask          = 0x40,
     SkipWarnings        = 0x80,
     LoadPlotSettings    = 0x100,
+    DiscoverAtStartup   = 0x200,
 };
 Q_DECLARE_OPERATORS_FOR_FLAGS (App::LoadOptions)
 
@@ -53,6 +54,7 @@ public:
 
     void changeStyleSheetParameter(QString name, QString value, bool load=true);
 
+    static QString pulseSequenceDirectory();
     const QString getTempPath() const;
     const QString getCurrentWorkingDirectory() const;
     const QString getSettingsFilePath() const;
