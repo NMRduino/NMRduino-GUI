@@ -48,6 +48,7 @@
         <property name="maximum">
          <number>65535</number>
         </property>
+        <property name="value"><number>1155</number></property>
        </widget>
       </item>
       <item row="0" column="1">
@@ -67,6 +68,7 @@
         <property name="maximum">
          <number>65535</number>
         </property>
+        <property name="value"><number>5824</number></property>
        </widget>
       </item>
       <item row="3" column="0" colspan="2">

@@ -19,6 +19,7 @@ TimeDomainPlot::TimeDomainPlot(QWidget *parent):
     worker(new TimeDomainPlotWorker)
 {
     ui->setupUi(this);
+    ui->qcustomplot_plot->configureCursor(ui->cursorCheckBox, ui->cursorCoordinates, "s", "V");
 
     qRegisterMetaType<QMap<int, QPair<QVector<double>, QVector<double>>>>();
 

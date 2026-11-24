@@ -132,6 +132,8 @@ void PulseAcquire::loadSettings(QSettings &settings, const App::LoadOptions load
     settings.endGroup();
 
     QString oldPath = settings.value("DataDirectory").toString();
+    if (oldPath.isEmpty())
+        oldPath = "./trash/";
     QString newPath = oldPath;    
 
     if (loadOptions & App::LoadOption::ResumeTask){

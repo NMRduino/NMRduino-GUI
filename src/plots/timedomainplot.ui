@@ -36,6 +36,26 @@
      </property>
     </widget>
    </item>
+   <item row="1" column="0">
+    <layout class="QHBoxLayout" name="cursorLayout">
+     <item>
+      <widget class="QCheckBox" name="cursorCheckBox">
+       <property name="text"><string>Cursor</string></property>
+       <property name="toolTip"><string>Show coordinates at the mouse pointer</string></property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QLabel" name="cursorCoordinates">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Ignored" vsizetype="Preferred">
+         <horstretch>1</horstretch><verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="text"><string/></property>
+      </widget>
+     </item>
+    </layout>
+   </item>
    <item row="0" column="1">
     <widget class="QToolBox" name="toolBox">
      <property name="font">

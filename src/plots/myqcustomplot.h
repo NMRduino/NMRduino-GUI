@@ -4,6 +4,9 @@
 
 #include "plots/qcustomplot.h"
 
+class QCheckBox;
+class QLabel;
+
 namespace Plot{
     class TimeDomainPlot;
     class FFTPlot;
@@ -49,11 +52,27 @@ public:
 
     explicit MyQCustomPlot(QWidget *parent = nullptr);
     virtual ~MyQCustomPlot() override;
+    void configureCursor(QCheckBox *toggle, QLabel *readout,
+                         const QString &xUnit, const QString &yUnit);
 
     QColor getColorFromPalette(int i, int n, Palettes palette=Palettes::Main);
     QColor getColorFromPalette(int i, int n, QColor mainColor, Palettes palette=Palettes::Main);
 
+protected:
+    void paintEvent(QPaintEvent *event) override;
+    void leaveEvent(QEvent *event) override;
+
 private:
+    void updateCursorReadout(const QPoint &position);
+    QLabel *cursorReadout = nullptr;
+    QString cursorFormat;
+    QString deltaFormat;
+    bool cursorEnabled = false;
+    bool liveVisible = false;
+    bool referenceLocked = false;
+    QPoint livePixel;
+    QPointF referenceCoords;
+
     void setBackgroundColor(QColor color);
     void setXAxisBasePenColor(QColor color);
     void setYAxisBasePenColor(QColor color);

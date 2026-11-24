@@ -56,7 +56,9 @@
        </widget>
       </item>
       <item row="2" column="3" colspan="3">
-       <widget class="QLineEdit" name="lineEdit_relaxData"/>
+       <widget class="QLineEdit" name="lineEdit_relaxData">
+        <property name="text"><string>./trash/</string></property>
+       </widget>
       </item>
       <item row="2" column="2">
        <widget class="QLabel" name="label_3">

@@ -2,6 +2,10 @@
 #include "ui_fftplot.h"
 
 #include <algorithm>
+#include <cmath>
+#include <QSettings>
+
+#include "mainapplication.h"
 
 #include "fft.h"
 #include "spoiler.h"
@@ -101,6 +105,7 @@ FFTPlot::FFTPlot(QWidget *parent):
     worker(new FFTPlotWorker)
 {
     ui->setupUi(this);
+    ui->plot->configureCursor(ui->cursorCheckBox, ui->cursorCoordinates, "Hz", "mV/√Hz");
 
     //auto anyLayout = new QGridLayout();
     //anyLayout->addWidget(ui->toolBox);
@@ -118,6 +123,20 @@ FFTPlot::FFTPlot(QWidget *parent):
     ui->radioButton_singleScan->setChecked(true);
     ui->radioButton_linScale->setChecked(true);
 
+    const QSettings settings(App::MainApplication::getConfigLocation().filePath("_config.ini"),
+                             QSettings::IniFormat);
+    // Match the precision of the spectrum range controls and QCPRange's upper bound.
+    const auto positiveAmplitude = [&settings](const QString &key, double fallback) {
+        bool ok = false;
+        const double value = settings.value("SpectrumPlot/" + key, fallback).toDouble(&ok);
+        return ok && std::isfinite(value) && value >= 0.0002 && value < QCPRange::maxRange
+                   ? value : fallback;
+    };
+    maximumAmplitude = positiveAmplitude("MaxAmplitude", 5000.0);
+    ui->doubleSpinBox_min->setMaximum(maximumAmplitude);
+    ui->doubleSpinBox_max->setMaximum(maximumAmplitude);
+    ui->doubleSpinBox_max->setValue(positiveAmplitude("StartupAmplitude", 100.0));
+
     connect(ui->doubleSpinBox_start, &QDoubleSpinBox::editingFinished, this, [=] () {updateXAxis();});
     connect(ui->doubleSpinBox_end, &QDoubleSpinBox::editingFinished, this, [=] () {updateXAxis();});
     connect(ui->doubleSpinBox_min, &QDoubleSpinBox::editingFinished, this, [=] () {updateYAxis();});
@@ -130,8 +149,20 @@ FFTPlot::FFTPlot(QWidget *parent):
 
     connect(ui->plot->yAxis, QOverload<const QCPRange &>::of(&QCPAxis::rangeChanged),
             this, [=](const QCPRange &newRange)
-            {if (newRange.lower < 0){ui->plot->yAxis->setRange(0, newRange.size()); return;}
-             ui->doubleSpinBox_min->setValue(newRange.lower); ui->doubleSpinBox_max->setValue(newRange.upper);});
+            {
+                auto axis = ui->plot->yAxis;
+                if (axis->scaleType() == QCPAxis::stLogarithmic) {
+                    if (newRange.upper > maximumAmplitude)
+                        axis->setRange(newRange.lower / newRange.upper * maximumAmplitude,
+                                       maximumAmplitude);
+                } else if (newRange.lower < 0 || newRange.upper > maximumAmplitude) {
+                    const double span = std::min(newRange.size(), maximumAmplitude);
+                    const double lower = std::max(0.0, std::min(newRange.lower, maximumAmplitude - span));
+                    axis->setRange(lower, std::min(lower + span, maximumAmplitude));
+                }
+                ui->doubleSpinBox_min->setValue(axis->range().lower);
+                ui->doubleSpinBox_max->setValue(axis->range().upper);
+            });
 
     connect(ui->radioButton_linScale, &QRadioButton::toggled, this, [=] () {updateYAxis();});
     connect(ui->radioButton_logScale, &QRadioButton::toggled, this, [=] () {updateYAxis();});
@@ -182,7 +213,6 @@ void FFTPlot::setupPlots()
     ui->plot->xAxis->setLabel("Frequency (Hz)");
     ui->plot->yAxis->setLabel("Amplitude (mV/√Hz)");
     ui->plot->xAxis->setRange(0, 600);
-    ui->plot->yAxis->setRange(0, 900);
     ui->plot->xAxis2->setVisible(true);
     ui->plot->yAxis2->setVisible(true);
     ui->plot->xAxis2->setTicks(false);
@@ -289,7 +319,15 @@ void FFTPlot::updateYAxis()
         ui->plot->yAxis->setTicker(QSharedPointer<QCPAxisTickerLog>::create());
     }
 
-    ui->plot->yAxis->setRange(ui->doubleSpinBox_min->value(), ui->doubleSpinBox_max->value());
+    auto axis = ui->plot->yAxis;
+    const double upper = std::min(ui->doubleSpinBox_max->value(), maximumAmplitude);
+    double lower = ui->doubleSpinBox_min->value();
+    if (axis->scaleType() == QCPAxis::stLogarithmic && lower == 0)
+        lower = std::min(0.001, upper * 0.01);
+    if (lower < upper)
+        axis->setRange(lower, upper);
+    ui->doubleSpinBox_min->setValue(axis->range().lower);
+    ui->doubleSpinBox_max->setValue(axis->range().upper);
 
     ui->plot->replot();
 }

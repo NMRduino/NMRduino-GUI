@@ -131,7 +131,10 @@ void TaskScheduler::loadSettings(QSettings &settings, const App::LoadOptions loa
     ManagedTask::loadSettings(settings, loadOptions);
 
     ui->lineEdit_relaxFile->setText(settings.value("DatFilePath").toString());
-    ui->lineEdit_relaxData->setText(settings.value("DataDirectory").toString());
+    QString directory = settings.value("DataDirectory").toString();
+    if (directory.isEmpty())
+        directory = "./trash/";
+    ui->lineEdit_relaxData->setText(directory);
     ui->comboBox_paTasks->setCurrentText(settings.value("SubtaskName").toString());
     ui->lineEdit_description->setText(settings.value("Description").toString());
 

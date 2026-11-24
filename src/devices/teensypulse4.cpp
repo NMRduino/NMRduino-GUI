@@ -85,8 +85,8 @@ void TeensyPulse4::loadSettings(const QSettings &settings, App::LoadOptions load
     setNumberOfSamples(settings.value("NumberOfSamples", 2048).toInt());
     setSupersamplingFactor(settings.value("Supersampling", 0).toInt());
 
-    ui->spinBox_productId->setValue(settings.value("ProductId", 0).toInt());
-    ui->spinBox_vendorId->setValue(settings.value("VendorId", 0).toInt());
+    ui->spinBox_productId->setValue(settings.value("ProductId", 1155).toInt());
+    ui->spinBox_vendorId->setValue(settings.value("VendorId", 5824).toInt());
     ui->lineEdit_serialNumber->setText(settings.value("SerialNumber", 0).toString());
 
     if (loadOptions & App::LoadOption::ReconnectDevices){

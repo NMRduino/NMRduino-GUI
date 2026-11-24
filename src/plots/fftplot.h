@@ -79,6 +79,7 @@ private slots:
 private:
     QScopedPointer<Ui::FFTPlot> ui;
     QPointer<QButtonGroup> singleAverageGroup, linLogGroup;
+    double maximumAmplitude;
     const int maxNumberOfChannels = 2;
 
     QScopedPointer<FFTPlotWorker> worker;
