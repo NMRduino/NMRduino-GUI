@@ -1,4 +1,4 @@
-VERSION = 3.39
+VERSION = 3.40
 QT       += core gui serialport printsupport
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets

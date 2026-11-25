@@ -7,6 +7,8 @@
 #include <QComboBox>
 #include <QEvent>
 #include <QInputDialog>
+#include <QMessageBox>
+#include <QSerialPortInfo>
 
 #include "ui_devicemanager.h"
 
@@ -177,13 +179,59 @@ QSharedPointer<GeneralDevice> DeviceManager::createDevice(GeneralDevice::DevType
 
     qDebug() << device->deviceName << device->deviceType;
     device->setDefaultSettings();
-    devices.append(device);
-    ui->toolBox_devices->addItem(device.data(), device->deviceName);
-    emit devicesChanged();
+    addPanel(device);
     return device;
 }
 
+void DeviceManager::addPanel(const QSharedPointer<GeneralDevice> &device){
+    devices.append(device);
+    ui->toolBox_devices->addItem(device.data(), device->deviceName);
+    emit devicesChanged();
+}
+
 QSharedPointer<GeneralDevice> DeviceManager::createDevice(QString devType, QString devName){
+    if (devType == GeneralDevice::devTypesMap.value(GeneralDevice::DevType::TwinleafCSB)) {
+        auto ports = TwinleafCSB::matchingPorts();
+        QStringList labels;
+        QList<QSerialPortInfo> available;
+        for (const auto &port : ports) {
+            bool inUse = false;
+            for (const auto &device : devices) {
+                const auto csb = device.dynamicCast<TwinleafCSB>();
+                if (csb && csb->connectedPort() == port.portName()) {
+                    inUse = true;
+                    break;
+                }
+            }
+            if (inUse)
+                continue;
+            available.append(port);
+            labels.append(tr("%1 (%2)").arg(port.serialNumber().isEmpty() ?
+                          tr("No serial number") : port.serialNumber(), port.portName()));
+        }
+        if (available.isEmpty()) {
+            QMessageBox::information(this, tr("Add Twinleaf CSB"),
+                tr("No available Twinleaf CSB found (VID %1, PID %2).")
+                .arg(TwinleafCSB::DefaultVendorId).arg(TwinleafCSB::DefaultProductId));
+            return {};
+        }
+        bool ok = false;
+        const auto choice = QInputDialog::getItem(this, tr("Add Twinleaf CSB"),
+                tr("Select the CSB serial number:"), labels, 0, false, &ok);
+        if (!ok)
+            return {};
+        const auto port = available.at(labels.indexOf(choice));
+        const QString base = "CSB " + (port.serialNumber().isEmpty() ? port.portName() : port.serialNumber());
+        devName = base;
+        for (int n = 2; getDevice(devName); ++n)
+            devName = QString("%1 (%2)").arg(base).arg(n);
+        auto csb = QSharedPointer<TwinleafCSB>::create(this, devName);
+        if (!csb->connectPort(port, false))
+            return {};
+        addPanel(csb);
+        ui->toolBox_devices->setCurrentWidget(csb.data());
+        return csb;
+    }
     if (devName.isEmpty()){
         bool ok;
         devName = QInputDialog::getText(this, "Adding a new device", "Please choose a name:", QLineEdit::Normal,

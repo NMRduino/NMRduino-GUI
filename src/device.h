@@ -165,6 +165,7 @@ public:
     void enableGuiElements();
 
 private:
+    void addPanel(const QSharedPointer<Dev::GeneralDevice> &device);
     QSharedPointer<Dev::GeneralDevice> createDevice(GeneralDevice::DevType devType, QString devName);
 
 private:

@@ -5,7 +5,7 @@
 #include <QDebug>
 #include <QSerialPortInfo>
 #include <QSerialPort>
-#include <QThread>
+
 #include <QSettings>
 #include <QComboBox>
 
@@ -19,6 +19,11 @@ TwinleafCSB::TwinleafCSB(QWidget *parent, QString devName):
   , ui(new Ui::TwinleafCSB)
 {
     ui->setupUi(this);
+    ui->spinBox_vendorID->setValue(DefaultVendorId);
+    ui->spinBox_productID->setValue(DefaultProductId);
+    connect(qSerialPort.data(), &QSerialPort::readyRead, this, [this] {
+        printResponse(QString::fromLatin1(qSerialPort->readAll()));
+    });
 
     Q_FOREACH(QAbstractSpinBox* sp, findChildren<QAbstractSpinBox*>()) {
             sp->installEventFilter( this );
@@ -59,76 +64,75 @@ TwinleafCSB::~TwinleafCSB(){
     disconnectDevice();
 }
 
+QList<QSerialPortInfo> TwinleafCSB::matchingPorts(int vendor, int product){
+    QList<QSerialPortInfo> matches;
+    for (const auto &port : QSerialPortInfo::availablePorts()) {
+        if (port.hasVendorIdentifier() && port.vendorIdentifier() == vendor &&
+            port.hasProductIdentifier() && port.productIdentifier() == product)
+            matches.append(port);
+    }
+    return matches;
+}
+
+QString TwinleafCSB::connectedPort() const {
+    return qSerialPort->isOpen() ? qSerialPort->portName() : QString();
+}
+
 void TwinleafCSB::reconnectDevice(bool skipWarnings){
-    auto isAvailable = false;
-    QString portName = "";
-    QString serialNumber;
-
-    foreach (const QSerialPortInfo &serialPortInfo, QSerialPortInfo::availablePorts()) {
-        if(!serialPortInfo.hasVendorIdentifier() || !serialPortInfo.hasProductIdentifier()){
-           continue;
-        }
-        if(serialPortInfo.vendorIdentifier() != ui->spinBox_vendorID->value()){
-           continue;
-        }
-
-        if(serialPortInfo.productIdentifier() != ui->spinBox_productID->value()){
-           continue;
-        }
-
-        serialNumber = ui->lineEdit_serialNumber->text();
-        if((serialPortInfo.serialNumber() != serialNumber) && !serialNumber.isEmpty()){
-           continue;
-        }
-
-        portName = serialPortInfo.portName();
-
-        isAvailable = true;
-
-        printResponse("Twinleaf CSB found.");
-        printResponse("Port name:" +  portName);
-        printResponse("Vendor Id:" +  QString::number(ui->spinBox_vendorID->value()));
-        printResponse("Product Id:" + QString::number(ui->spinBox_productID->value()));
-        printResponse("Serial number:" + QString(serialPortInfo.serialNumber()));
-
-        break;
+    const QString serial = ui->lineEdit_serialNumber->text().trimmed();
+    QList<QSerialPortInfo> candidates;
+    for (const auto &port : matchingPorts(ui->spinBox_vendorID->value(), ui->spinBox_productID->value())) {
+        if (serial.isEmpty() || port.serialNumber() == serial)
+            candidates.append(port);
     }
-
-    if(!isAvailable){
-        if(!skipWarnings){
-            QMessageBox::warning(this, "Port error:", QString("Cannot connect to \"%1\".").arg(deviceName));
+    for (const auto &port : candidates) {
+        if (port.portName() == lastPort || (candidates.size() == 1 && (!serial.isEmpty() || lastPort.isEmpty()))) {
+            connectPort(port, skipWarnings);
+            return;
         }
-        printResponse("Cannot connect Twinleaf CSB.");
-        return;
     }
+    const QString message = candidates.size() > 1
+            ? tr("Multiple CSBs match. Enter a serial number or use File → Add a device.")
+            : tr("No matching CSB found for VID %1, PID %2, serial '%3'.")
+                .arg(ui->spinBox_vendorID->value()).arg(ui->spinBox_productID->value()).arg(serial);
+    printResponse(message);
+    if (!skipWarnings)
+        QMessageBox::warning(this, tr("Twinleaf CSB"), message);
+}
 
-    // open and configure serialport
-    qSerialPort->setPortName(portName);
-    qSerialPort->open(QSerialPort::ReadWrite);
+bool TwinleafCSB::connectPort(const QSerialPortInfo &port, bool skipWarnings){
+    if (qSerialPort->isOpen())
+        disconnectDevice();
+    qSerialPort->setPort(port);
     qSerialPort->setBaudRate(QSerialPort::Baud115200);
     qSerialPort->setDataBits(QSerialPort::Data8);
     qSerialPort->setParity(QSerialPort::NoParity);
     qSerialPort->setStopBits(QSerialPort::OneStop);
     qSerialPort->setFlowControl(QSerialPort::NoFlowControl);
-
-    printResponse("Connected.");
-
+    if (!qSerialPort->open(QSerialPort::ReadWrite)) {
+        const QString message = tr("Could not open %1 (serial %2): %3")
+                .arg(port.systemLocation(), port.serialNumber(), qSerialPort->errorString());
+        printResponse(message);
+        if (!skipWarnings)
+            QMessageBox::warning(parentWidget(), tr("Twinleaf CSB"), message);
+        return false;
+    }
+    ui->lineEdit_serialNumber->setText(port.serialNumber());
+    lastPort = port.portName();
     previousCommands.clear();
+    printResponse(tr("Connected to %1 (serial %2).").arg(port.portName(), port.serialNumber()));
+    return true;
 }
 
 void TwinleafCSB::disconnectDevice(){
-    if(qSerialPort->isOpen()){
-        if(qSerialPort->waitForReadyRead(200)){
-            qSerialPort->readAll();
-        }
-        qSerialPort->close();
-    }
+    qSerialPort->close();
     printResponse("Disconnected.");
 }
 
 void TwinleafCSB::saveSettings(QSettings &settings) const{
     GeneralDevice::saveSettings(settings);
 
+    settings.setValue("PortName", lastPort);
     settings.setValue("VendorId", ui->spinBox_vendorID->value());
     settings.setValue("ProductId", ui->spinBox_productID->value());
     settings.setValue("SerialNumber", ui->lineEdit_serialNumber->text());
@@ -151,8 +155,16 @@ void TwinleafCSB::saveSettings(QSettings &settings) const{
 void TwinleafCSB::loadSettings(const QSettings &settings, const App::LoadOptions loadOptions){
     GeneralDevice::loadSettings(settings, loadOptions);
 
-    ui->spinBox_vendorID->setValue(settings.value("VendorId").toInt());
-    ui->spinBox_productID->setValue(settings.value("ProductId").toInt());
+    lastPort = settings.value("PortName").toString();
+    int vendor = settings.value("VendorId").toInt();
+    int product = settings.value("ProductId").toInt();
+    // Earlier CSB configurations may contain the two identifiers transposed.
+    if (vendor == DefaultProductId && product == DefaultVendorId) {
+        vendor = DefaultVendorId;
+        product = DefaultProductId;
+    }
+    ui->spinBox_vendorID->setValue(vendor > 0 ? vendor : int(DefaultVendorId));
+    ui->spinBox_productID->setValue(product > 0 ? product : int(DefaultProductId));
     ui->lineEdit_serialNumber->setText(settings.value("SerialNumber").toString());
 
     if (loadOptions & App::LoadOption::ReconnectDevices){
@@ -275,13 +287,8 @@ void TwinleafCSB::write(const QByteArray command){
         return;
     }
 
-    qSerialPort->write(command);
-    for(int i=0; !qSerialPort->canReadLine() and (i < 10); i++){
-        qSerialPort->waitForReadyRead(20);
-        QThread::msleep(10);
-    }
-    QString response = qSerialPort->readLine(256);
-    printResponse(response);
+    if (qSerialPort->write(command) < 0)
+        printResponse(qSerialPort->errorString());
 }
 
 void TwinleafCSB::printCommand(QString command){
@@ -289,7 +296,7 @@ void TwinleafCSB::printCommand(QString command){
         ui->plainTextEdit->clear();
     }
 
-    auto stringNoEscape = QString("<font color=%1>%2</font").arg(sendColor.name()).arg(command);
+    auto stringNoEscape = QString("<font color=%1>%2</font>").arg(sendColor.name()).arg(command.toHtmlEscaped());
     stringNoEscape.replace("\n", "\\n").replace("\r", "\\r");
     ui->plainTextEdit->appendHtml(stringNoEscape);
     //qDebug() << command;
@@ -300,7 +307,7 @@ void TwinleafCSB::printResponse(QString response){
         ui->plainTextEdit->clear();
     }
 
-    auto stringNoEscape = QString("<font color=%1>%2</font").arg(receiveColor.name()).arg(response);
+    auto stringNoEscape = QString("<font color=%1>%2</font>").arg(receiveColor.name()).arg(response.toHtmlEscaped());
     stringNoEscape.replace("\n", "\\n").replace("\r", "\\r");
     ui->plainTextEdit->appendHtml(stringNoEscape);
     //qDebug() << response;

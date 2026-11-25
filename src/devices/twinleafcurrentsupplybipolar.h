@@ -2,6 +2,7 @@
 #define TWINLEAFCURRENTSUPPLYBIPOLAR_H
 
 #include <QMap>
+#include <QSerialPortInfo>
 #include <QPointer>
 
 #include "device.h"
@@ -37,6 +38,10 @@ public:
     void setParameter(const QString channel, const Dev::CSB::CurrentParam parameter, const double value) override;
     //double getParameter(const QString channel, const Dev::CSB::CurrentParam parameter) const override;
 
+    enum { DefaultVendorId = 0x0483, DefaultProductId = 0x5740 };
+    static QList<QSerialPortInfo> matchingPorts(int vendor = DefaultVendorId, int product = DefaultProductId);
+    QString connectedPort() const;
+    bool connectPort(const QSerialPortInfo &port, bool skipWarnings);
     void reconnectDevice(bool skipWarnings=false);
     void disconnectDevice();
 
@@ -69,6 +74,7 @@ private:
     static const QMap<QString, Channel> channels;
     QColor sendColor, receiveColor;
 
+    QString lastPort;
     QMap<QString, double> previousCommands;
 };
 #endif // TWINLEAFCURRENTSUPPLYBIPOLAR_H

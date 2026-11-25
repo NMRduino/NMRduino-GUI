@@ -1,5 +1,11 @@
 # NMRduino GUI changelog
 
+## 3.40
+
+- Fixed delayed Twinleaf CSB console replies. Responses now appear as data arrives, including after a single command. Verified on Raspberry Pi with a Twinleaf CSB R1. See [issue #3](https://github.com/NMRduino/NMRduino-GUI/issues/3).
+- **File → Add a device → Twinleaf CSB** lists matching serial numbers and port names. Selecting a device opens its port and displays its panel. If the port fails to open, the GUI reports the operating system’s error.
+- Corrected the CSB USB defaults to VID 1155 (`0x0483`) and PID 22336 (`0x5740`). Saved CSB settings with the two IDs reversed are corrected when loaded.
+
 ## 3.39
 
 - NMRduino appears first in the device panel. At startup, one matching USB device connects automatically and the GUI displays its serial number. With multiple matches, choose a serial number in the panel and click **Reconnect**.

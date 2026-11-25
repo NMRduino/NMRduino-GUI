@@ -4,12 +4,12 @@ NMRduino GUI is the desktop software for the [NMRduino spectrometer](https://git
 
 ## A. Downloads
 
-Version **3.39** is available as source. The Windows binary linked below is **3.37.4**. See the [change log](CHANGELOG.md) for the new features. The Windows package is ready to run. On a Raspberry Pi, you can build the GUI from source using the commands in section C.
+Version **3.40** is available as source. The Windows binary linked below is **3.37.4**. See the [change log](CHANGELOG.md) for the new features. The Windows package is ready to run. On a Raspberry Pi, you can build the GUI from source using the commands in section C.
 
 | Platform | Download | Instructions |
 | --- | --- | --- |
 | Windows (64-bit) | [Download the compiled Windows ZIP (3.37.4)](https://github.com/NMRduino/NMRduino-GUI/releases/download/3.37.4/nmrduino-3.37.4-win64.zip) | [B. Run on Windows](#b-run-on-windows) |
-| Raspberry Pi, including Pi 400 | [Download the source code (.tar.gz)](https://codeload.github.com/NMRduino/NMRduino-GUI/tar.gz/refs/tags/3.39) | [C. Build on Raspberry Pi](#c-build-on-raspberry-pi) |
+| Raspberry Pi, including Pi 400 | [Download the source code (.tar.gz)](https://codeload.github.com/NMRduino/NMRduino-GUI/tar.gz/refs/tags/3.40) | [C. Build on Raspberry Pi](#c-build-on-raspberry-pi) |
 
 For other versions, see [all GUI releases](https://github.com/NMRduino/NMRduino-GUI/releases). If you also need firmware for the Teensy, see [D. Connect the spectrometer](#d-connect-the-spectrometer).
 
@@ -40,7 +40,7 @@ You can do this from the same terminal. The commands below download the source a
 
 ```bash
 cd ~
-cd ~ && curl -fL --retry 2 -o nmrduino-3.39.tar.gz https://codeload.github.com/NMRduino/NMRduino-GUI/tar.gz/refs/tags/3.39 && tar -xzf nmrduino-3.39.tar.gz
+cd ~ && curl -fL --retry 2 -o nmrduino-3.40.tar.gz https://codeload.github.com/NMRduino/NMRduino-GUI/tar.gz/refs/tags/3.40 && tar -xzf nmrduino-3.40.tar.gz
 ```
 
 ### C3. Compile the GUI
@@ -48,8 +48,8 @@ cd ~ && curl -fL --retry 2 -o nmrduino-3.39.tar.gz https://codeload.github.com/N
 Run the following commands and wait for the build to finish. This step can take several minutes on a Pi.
 
 ```bash
-mkdir -p ~/NMRduino-GUI-3.39/build
-cd ~/NMRduino-GUI-3.39/build
+mkdir -p ~/NMRduino-GUI-3.40/build
+cd ~/NMRduino-GUI-3.40/build
 /usr/lib/qt5/bin/qmake ../src/NMRduino.pro CONFIG+=release && make
 ```
 
@@ -58,7 +58,7 @@ cd ~/NMRduino-GUI-3.39/build
 Once the terminal prompt returns after a successful build, run:
 
 ```bash
-~/NMRduino-GUI-3.39/build/nmrduino
+~/NMRduino-GUI-3.40/build/nmrduino
 ```
 
 You only need to compile the GUI once. The next time you want to use it, open a terminal and run that last command.
@@ -70,6 +70,8 @@ The Teensy requires NMRduino firmware **1.2.0 or later**. If you need to install
 Connect the NMRduino by USB before starting the GUI. If one device matches the configured vendor and product IDs (defaults 5824 and 1155), the GUI connects and displays its serial number. If several devices match, choose the serial number in the **NMRduino** side panel and click **Reconnect**. Select **NMRduino** as the acquisition device for your experiment.
 
 You can also try the software before connecting a spectrometer. Open **Spectrum Analyzer** and select **Test DAQ** to use the simulated device.
+
+To connect a Twinleaf CSB current supply, open **File → Add a device → Twinleaf CSB** and select its serial number. The list shows available serial ports with USB vendor ID 1155 and product ID 22336. Once the port opens, the GUI displays the CSB panel.
 
 ## E. Settings and logs
 
